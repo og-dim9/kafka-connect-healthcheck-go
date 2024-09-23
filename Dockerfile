@@ -1,8 +1,15 @@
-FROM python:3.7-alpine
+FROM golang:1.21.13-alpine AS builder
+COPY cmd /src/cmd/
+WORKDIR /src/cmd/healthcheck
+RUN go build -o healthcheck --ldflags "-s -w" .
 
-COPY setup.py README.md LICENSE /kafka-connect-healthcheck/
-COPY kafka_connect_healthcheck/ /kafka-connect-healthcheck/kafka_connect_healthcheck/
+FROM scratch as final
+WORKDIR /
+COPY README.md LICENSE
+COPY --from=builder /src/cmd/healthcheck/healthcheck /bin/healthcheck
 
-RUN cd /kafka-connect-healthcheck && pip3 install -e .
+EXPOSE 18083
+HEALTHCHECK --interval=5s --timeout=3s --start-period=5s --retries=3 CMD curl -f http://localhost:18083/healthz || exit 1
+CMD ["/bin/healthcheck"]
 
-CMD ["kafka-connect-healthcheck"]
+

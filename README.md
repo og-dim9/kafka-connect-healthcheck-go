@@ -1,7 +1,6 @@
-# kafka-connect-healthcheck
+# kafka-connect-healthcheck-go
 
-![Python CI](https://github.com/devshawn/kafka-connect-healthcheck/workflows/Python%20CI/badge.svg) [![Docker Cloud Build Status](https://img.shields.io/docker/cloud/build/devshawn/kafka-connect-healthcheck.svg)](https://hub.docker.com/r/devshawn/kafka-connect-healthcheck) ![PyPI](https://img.shields.io/pypi/v/kafka-connect-healthcheck.svg?color=blue) ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/kafka-connect-healthcheck.svg) [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
-
+This is a dumb and lazy fork of [devshawn/kafka-connect-healthcheck](https://github.com/devshawn/kafka-connect-healthcheck)
 
 A simple healthcheck wrapper to monitor Kafka Connect.
 
@@ -21,35 +20,33 @@ By default, the root endpoint `/` will return `200 OK` healthy if all connectors
 Kafka Connect Healthcheck can be installed as a command-line tool through `pip` or it can be used as a standalone Docker container. It could also be installed as a part of a custom Kafka Connect docker image.
 
 ### Command-Line
-To use `kafka-connect-healthcheck` from the command-line, you must have `python` and `pip` installed. Currently, only Python 3 is supported.
-
-You can install `kafka-connect-healthcheck` via pip:
+You can install `healthcheck` via go get:
 
 ```bash
-pip install kafka-connect-healthcheck
+healthcheck
 ```
 
 To start the healthcheck server, run:
 
 ```bash
-kafka-connect-healthcheck
+healthcheck
 ```
 
 The server will now be running on [localhost:18083][localhost].
 
 ### Docker
-The `kafka-connect-healthcheck` image can be found on Docker Hub.
+The `healthcheck` image can be found on Docker Hub.
 
 You can pull down the latest image by running:
 
 ```bash
-docker pull devshawn/kafka-connect-healthcheck
+docker pull dim9/kafka-connect-healthcheck-go
 ```
 
 To start the healthcheck server, run:
 
 ```bash
-docker run --rm -it -p 18083:18083 devshawn/kafka-connect-healthcheck
+docker run --rm -it -p 18083:18083 dim9/kafka-connect-healthcheck-go
 ```
 
 The server will now be running on [localhost:18083][localhost].
@@ -58,7 +55,7 @@ The server will now be running on [localhost:18083][localhost].
 Kafka Connect Healthcheck can be configured via command-line arguments or by environment variables.
 
 #### Port
-The port for the `kafka-connect-healthcheck` API.
+The port for the `healthcheck` API.
 
 | Usage                 | Value              |
 |-----------------------|--------------------|
@@ -119,18 +116,6 @@ A number between 1 and 100. If set, this is the percentage of connectors that mu
 | Valid Values          | 1 to 100                                    |
 
 By default, **any** failures will cause the healthcheck to fail.
-
-#### Log Level
-The level of logs to be shown by the application.
-
-| Usage                 | Value                                       |
-|-----------------------|---------------------------------------------|
-| Environment Variable  | `HEALTHCHECK_LOG_LEVEL`                     |
-| Command-Line Argument | `--log-level`                               |
-| Default Value         | `INFO`                                      |
-| Valid Values          | `DEBUG`, `INFO`, `WARNING`, `ERROR`         |
-
-All healthy connector and task statuses are logged at `INFO`. Unhealthy ones are logged at `WARNING`. Any communication or HTTP errors are logged at `ERROR`.
 
 ## API
 The server provides a very simple HTTP API which can be used for liveness probes and monitoring alerts. We expose two endpoints:
@@ -201,8 +186,13 @@ curl http://localhost:18083/ping
 }
 ```
 
+## TODO:
+- Implement logging levels
+- test against python tests
+- Replicate tests in go
+
 ## License
-Copyright (c) 2019 Shawn Seymour.
+Copyright (c) 2019 Shawn Seymour. [devshawn](https://github.com/devshawn/kafka-connect-healthcheck) original author.
 
 Licensed under the [Apache 2.0 license][license].
 
