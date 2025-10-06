@@ -16,7 +16,14 @@ func (h *RequestHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		payload, err := h.health.GetHealthResult()
 		log.Println("payload:", payload)
 		if err != nil {
-			h.respond(w, http.StatusInternalServerError, []byte{})
+			errorResponse := map[string]interface{}{
+				"healthy":        false,
+				"message":        "Exception raised while attempting to calculate health result, assuming unhealthy.",
+				"error":          err.Error(),
+				"failure_states": h.health.UnhealthyStates,
+			}
+			payloadJSON, _ := json.Marshal(errorResponse)
+			h.respond(w, http.StatusServiceUnavailable, payloadJSON)
 			return
 		}
 		payloadJSON, _ := json.Marshal(payload)

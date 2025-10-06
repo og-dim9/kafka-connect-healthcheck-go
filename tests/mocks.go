@@ -71,12 +71,11 @@ func (h *MockServerRequestHandler) ServeHTTP(w http.ResponseWriter, r *http.Requ
 				w.WriteHeader(statusCode)
 				w.Write(data)
 			} else {
-				connectorName := splitPath[2]
 				detailsStatusCode := 503
 				if strings.Contains(h.MockName, "unhealthy-broker") {
 					detailsStatusCode = 200
 				}
-				filePath := fmt.Sprintf("./tests/data/mocks/healthy-connector-details.json", h.MockName, connectorName)
+				filePath := "./tests/data/mocks/healthy-connector-details.json"
 				log.Println("filePath:", filePath)
 
 				data, err := ioutil.ReadFile(filePath)

@@ -17,11 +17,23 @@ type Health struct {
 	Auth                       string
 }
 
-type ConnectorStatus struct {
-	Name     string `json:"name"`
+type ConnectorInfo struct {
 	State    string `json:"state"`
 	WorkerID string `json:"worker_id"`
-	Tasks    []Task `json:"tasks"`
+}
+
+type ConnectorStatus struct {
+	Name      string        `json:"name"`
+	Connector ConnectorInfo `json:"connector"`
+	Tasks     []Task        `json:"tasks"`
+}
+
+func (c *ConnectorStatus) State() string {
+	return c.Connector.State
+}
+
+func (c *ConnectorStatus) WorkerID() string {
+	return c.Connector.WorkerID
 }
 
 type Task struct {
@@ -40,12 +52,48 @@ type HealthResult struct {
 }
 
 type Failure struct {
-	Type      string `json:"type"`
-	Connector string `json:"connector"`
-	State     string `json:"state,omitempty"`
-	WorkerID  string `json:"worker_id,omitempty"`
-	ID        int    `json:"id,omitempty"`
-	Trace     string `json:"trace,omitempty"`
+	Type      string  `json:"type"`
+	Connector string  `json:"connector"`
+	ID        *int    `json:"id,omitempty"`
+	State     string  `json:"state,omitempty"`
+	Trace     *string `json:"trace,omitempty"`
+	WorkerID  string  `json:"worker_id,omitempty"`
+}
+
+func (f Failure) MarshalJSON() ([]byte, error) {
+	type Alias Failure
+	if f.Type == "task" {
+		// For tasks, include all fields including trace (even if nil)
+		return json.Marshal(&struct {
+			Type      string  `json:"type"`
+			Connector string  `json:"connector"`
+			ID        *int    `json:"id,omitempty"`
+			State     string  `json:"state,omitempty"`
+			Trace     *string `json:"trace"`
+			WorkerID  string  `json:"worker_id,omitempty"`
+		}{
+			Type:      f.Type,
+			Connector: f.Connector,
+			ID:        f.ID,
+			State:     f.State,
+			Trace:     f.Trace,
+			WorkerID:  f.WorkerID,
+		})
+	}
+	// For connectors and brokers, omit trace field
+	return json.Marshal(&struct {
+		Type      string `json:"type"`
+		Connector string `json:"connector"`
+		ID        *int   `json:"id,omitempty"`
+		State     string `json:"state,omitempty"`
+		WorkerID  string `json:"worker_id,omitempty"`
+	}{
+		Type:      f.Type,
+		Connector: f.Connector,
+		ID:        f.ID,
+		State:     f.State,
+		WorkerID:  f.WorkerID,
+	})
 }
 
 func NewHealth(connectURL, workerID string, unhealthyStates []string, auth string, failureThresholdPercentage int, consideredContainers []string) *Health {
@@ -122,18 +170,20 @@ func (h *Health) GetHealthResult() (*HealthResult, error) {
 func (h *Health) HandleHealthCheck(connectorStatuses []ConnectorStatus, healthResult *HealthResult) {
 	connectorsOnThisWorker := false
 	for _, connector := range connectorStatuses {
-		if h.isOnThisWorker(connector.WorkerID) && contains(h.ConsideredContainers, "connector") {
+		if h.isOnThisWorker(connector.WorkerID()) && contains(h.ConsideredContainers, "connector") {
 			connectorsOnThisWorker = true
-			if h.isInUnhealthyState(connector.State) {
-				log.Printf("Connector '%s' is unhealthy in failure state: %s\n", connector.Name, connector.State)
+			if h.isInUnhealthyState(connector.State()) {
+				log.Printf("Connector '%s' is unhealthy in failure state: %s\n", connector.Name, connector.State())
 				healthResult.Failures = append(healthResult.Failures, Failure{
 					Type:      "connector",
 					Connector: connector.Name,
-					State:     connector.State,
-					WorkerID:  connector.WorkerID,
+					State:     connector.State(),
+					WorkerID:  connector.WorkerID(),
+					ID:        nil,
+					Trace:     nil,
 				})
 			} else {
-				log.Printf("Connector '%s' is healthy in state: %s\n", connector.Name, connector.State)
+				log.Printf("Connector '%s' is healthy in state: %s\n", connector.Name, connector.State())
 			}
 		}
 		h.handleTaskHealthCheck(connector, healthResult)
@@ -160,17 +210,22 @@ func (h *Health) handleTaskHealthCheck(connector ConnectorStatus, healthResult *
 		for _, task := range connector.Tasks {
 			if h.isOnThisWorker(task.WorkerID) {
 				if h.isInUnhealthyState(task.State) {
-					log.Printf("Connector '%s' task '%s' is unhealthy in failure state: %s\n", connector.Name, task.ID, task.State)
+					log.Printf("Connector '%s' task '%d' is unhealthy in failure state: %s\n", connector.Name, task.ID, task.State)
+					var trace *string
+					if task.Trace != "" {
+						trace = &task.Trace
+					}
+					taskID := task.ID
 					healthResult.Failures = append(healthResult.Failures, Failure{
 						Type:      "task",
 						Connector: connector.Name,
-						ID:        task.ID,
+						ID:        &taskID,
 						State:     task.State,
 						WorkerID:  task.WorkerID,
-						Trace:     task.Trace,
+						Trace:     trace,
 					})
 				} else {
-					log.Printf("Connector '%s' task '%s' is healthy in state: %s\n", connector.Name, task.ID, task.State)
+					log.Printf("Connector '%s' task '%d' is healthy in state: %s\n", connector.Name, task.ID, task.State)
 				}
 			}
 		}
@@ -255,6 +310,10 @@ func (h *Health) getJSON(url string, target interface{}) error {
 		return err
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode >= 400 {
+		return fmt.Errorf("HTTP error: %d %s", resp.StatusCode, resp.Status)
+	}
 
 	return json.NewDecoder(resp.Body).Decode(target)
 }
