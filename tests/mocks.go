@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net"
 	"net/http"
@@ -33,7 +32,7 @@ func (h *MockServerRequestHandler) ServeHTTP(w http.ResponseWriter, r *http.Requ
 		if r.URL.Path == "/connectors" {
 			filePath := fmt.Sprintf("./tests/data/mocks/%s-connectors.json", h.MockName)
 			log.Println("filePath:", filePath)
-			data, err := ioutil.ReadFile(filePath)
+			data, err := os.ReadFile(filePath)
 			if err != nil {
 				log.Println(err.Error())
 
@@ -49,7 +48,7 @@ func (h *MockServerRequestHandler) ServeHTTP(w http.ResponseWriter, r *http.Requ
 				filePath := fmt.Sprintf("./tests/data/mocks/%s-connector-%s.json", h.MockName, connectorName)
 				log.Println("filePath:", filePath)
 
-				data, err := ioutil.ReadFile(filePath)
+				data, err := os.ReadFile(filePath)
 				if err != nil {
 					log.Println(err.Error())
 					w.WriteHeader(statusCode)
@@ -62,7 +61,7 @@ func (h *MockServerRequestHandler) ServeHTTP(w http.ResponseWriter, r *http.Requ
 				filePath := fmt.Sprintf("./tests/data/mocks/%s-connector-%s.json", h.MockName, connectorName)
 				log.Println("filePath:", filePath)
 
-				data, err := ioutil.ReadFile(filePath)
+				data, err := os.ReadFile(filePath)
 				if err != nil {
 					log.Println(err.Error())
 					w.WriteHeader(statusCode)
@@ -78,7 +77,7 @@ func (h *MockServerRequestHandler) ServeHTTP(w http.ResponseWriter, r *http.Requ
 				filePath := "./tests/data/mocks/healthy-connector-details.json"
 				log.Println("filePath:", filePath)
 
-				data, err := ioutil.ReadFile(filePath)
+				data, err := os.ReadFile(filePath)
 				if err != nil {
 					log.Println(err.Error())
 
