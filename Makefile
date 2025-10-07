@@ -6,7 +6,7 @@ TAG = "latest"
 
 
 build: vet
-	@cd cmd/healthcheck && go build -o healthcheck  *.go
+	@cd cmd/healthcheck && go build -o ../../healthcheck  *.go
 
 run: build
 	@cd cmd/healthcheck && ./healthcheck
@@ -24,7 +24,7 @@ test:
 	@cd cmd/healthcheck && go test -v
 
 clean:
-	@cd cmd/healthcheck && rm -fv healthcheck
+	@rm -fv healthcheck
 
 docker:
 	@docker build -t $(DOCKER_IMAGE):$(TAG) .
